@@ -43,9 +43,6 @@ namespace ColdStorage.Pages
             {
                 conn.Open();
 
-                // Get all tables from the database
-                DataTable schema = conn.GetSchema("Tables");
-
                 // Build dynamic query to aggregate data from all relevant tables
                 string summaryQuery = BuildSummaryQuery(conn);
 
@@ -71,15 +68,18 @@ namespace ColdStorage.Pages
                                 Id = GetSafeInt(reader, "Id"),
                                 SurveyId = GetSafeString(reader, "SurveyId"),
                                 State = GetSafeString(reader, "State"),
+                                District = GetSafeString(reader, "District"),
                                 City = GetSafeString(reader, "City"),
                                 Location = GetSafeString(reader, "Location"),
+                                FacilityType = GetSafeString(reader, "FacilityType"),
+                                OwnerName = GetSafeString(reader, "OwnerName"),
+                                ContactNumber = GetSafeString(reader, "ContactNumber"),
                                 ActualCapacity = GetSafeDecimal(reader, "ActualCapacity"),
                                 TotalArea = GetSafeDecimal(reader, "TotalArea"),
-                                Used = GetSafeDecimal(reader, "Used"),
-                                Available = GetSafeDecimal(reader, "Available"),
-                                Status = GetSafeString(reader, "Status"),
-                                Temperature = GetSafeDecimal(reader, "Temperature"),
-                                SurveyDate = GetSafeDateTime(reader, "SurveyDate"),
+                                NumberOfChambers = GetSafeInt(reader, "NumberOfChambers"),
+                                YearEstablished = GetSafeString(reader, "YearEstablished"),
+                                QCStatus = GetSafeString(reader, "QCStatus"),
+                                QCDate = GetSafeDateTime(reader, "QCDate"),
                                 Latitude = GetSafeDouble(reader, "Latitude"),
                                 Longitude = GetSafeDouble(reader, "Longitude")
                             });
@@ -104,17 +104,24 @@ namespace ColdStorage.Pages
 
         private string BuildSummaryQuery(SqlConnection conn)
         {
+            // First, let's check what columns exist in the table
             string query = @"
                 SELECT 
                     ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) as Id,
                     [Survey ID] as SurveyId,
                     COALESCE([State], 'Unknown') as State,
+                    COALESCE([City], '') as District,
                     COALESCE([City], 'Unknown') as City,
-                    COALESCE([State], 'Unknown') as Location,
+                    COALESCE([State], '') as Location,
+                    '' as FacilityType,
+                    '' as OwnerName,
+                    '' as ContactNumber,
                     [What is the actual capacity of your facility (in metric tonnes)?] as ActualCapacity,
                     [What is the total area of this facility (in sq# mt)] as TotalArea,
-                    [Observation Date] as SurveyDate,
- 'Active' as Status,
+                    0 as NumberOfChambers,
+                    '' as YearEstablished,
+                    COALESCE([QC Status], '') as QCStatus,
+                    [QC Date] as QCDate,
                     [Latitude] as Latitude,
                     [Longitude] as Longitude
                 FROM Cold_Storage
@@ -126,37 +133,36 @@ namespace ColdStorage.Pages
             if (!string.IsNullOrEmpty(City))
                 query += " AND [City] = @City";
             if (StartDate.HasValue)
-                query += " AND [Observation Date] >= @StartDate";
+                query += " AND COALESCE([QC Date], [Observation Date]) >= @StartDate";
             if (EndDate.HasValue)
-                query += " AND [Observation Date] <= @EndDate";
+                query += " AND COALESCE([QC Date], [Observation Date]) <= @EndDate";
 
             query += " ORDER BY [State], [City]";
 
             return query;
         }
 
-        private bool TableExists(SqlConnection conn, string tableName)
+        // Helper method to get all column names from the table
+        private List<string> GetTableColumns(SqlConnection conn)
         {
-            using (SqlCommand cmd = new SqlCommand(
-                "SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = @TableName", conn))
-            {
-                cmd.Parameters.AddWithValue("@TableName", tableName);
-                return (int)cmd.ExecuteScalar() > 0;
-            }
-        }
+            var columns = new List<string>();
+            string columnQuery = @"
+                SELECT COLUMN_NAME 
+                FROM INFORMATION_SCHEMA.COLUMNS 
+                WHERE TABLE_NAME = 'Cold_Storage'
+                ORDER BY ORDINAL_POSITION";
 
-        private string GetFirstAvailableTable(SqlConnection conn)
-        {
-            using (SqlCommand cmd = new SqlCommand(
-                @"SELECT TOP 1 TABLE_NAME 
-                  FROM INFORMATION_SCHEMA.TABLES 
-                  WHERE TABLE_TYPE = 'BASE TABLE' 
-                  AND TABLE_NAME NOT LIKE 'sys%'
-                  ORDER BY TABLE_NAME", conn))
+            using (SqlCommand cmd = new SqlCommand(columnQuery, conn))
             {
-                var result = cmd.ExecuteScalar();
-                return result?.ToString() ?? "Locations";
+                using (SqlDataReader reader = cmd.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        columns.Add(reader.GetString(0));
+                    }
+                }
             }
+            return columns;
         }
 
         // Safe data extraction methods
@@ -165,7 +171,18 @@ namespace ColdStorage.Pages
             try
             {
                 int ordinal = reader.GetOrdinal(columnName);
-                return reader.IsDBNull(ordinal) ? 0 : reader.GetInt32(ordinal);
+                if (reader.IsDBNull(ordinal)) return 0;
+
+                var fieldType = reader.GetFieldType(ordinal);
+                if (fieldType == typeof(int))
+                    return reader.GetInt32(ordinal);
+                else if (fieldType == typeof(string))
+                {
+                    if (int.TryParse(reader.GetString(ordinal), out int result))
+                        return result;
+                }
+
+                return Convert.ToInt32(reader.GetValue(ordinal));
             }
             catch { return 0; }
         }
@@ -237,15 +254,18 @@ namespace ColdStorage.Pages
             public int Id { get; set; }
             public string SurveyId { get; set; } = "";
             public string State { get; set; } = "";
+            public string District { get; set; } = "";
             public string City { get; set; } = "";
             public string Location { get; set; } = "";
+            public string FacilityType { get; set; } = "";
+            public string OwnerName { get; set; } = "";
+            public string ContactNumber { get; set; } = "";
             public decimal ActualCapacity { get; set; }
             public decimal TotalArea { get; set; }
-            public decimal Used { get; set; }
-            public decimal Available { get; set; }
-            public string Status { get; set; } = "";
-            public decimal Temperature { get; set; }
-            public DateTime SurveyDate { get; set; }
+            public int NumberOfChambers { get; set; }
+            public string YearEstablished { get; set; } = "";
+            public string QCStatus { get; set; } = "";
+            public DateTime QCDate { get; set; }
             public double Latitude { get; set; }
             public double Longitude { get; set; }
         }

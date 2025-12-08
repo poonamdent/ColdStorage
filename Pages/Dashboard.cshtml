@@ -6,16 +6,39 @@
 
 <div class="container-fluid mt-4">
     <h2 class="mb-4">
-       Cold Storage Dashboard
+        Cold Storage Dashboard
     </h2>
 
+    <!-- India Map Section -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">
+                <i class="bi bi-map"></i> India Storage Location Map
+            </h5>
+            <small>Click on any state/district to view detailed information</small>
+        </div>
+        <div class="card-body p-0">
+            <div id="indiaMap" style="height: 500px; width: 100%;"></div>
+        </div>
+    </div>
+
+    <!-- Selected District Info -->
+    <div id="districtInfo" style="display: none;">
+        <div class="alert alert-info mb-3">
+            <strong>Selected Region:</strong> <span id="selectedRegion">All India</span>
+            <button type="button" class="btn btn-sm btn-outline-secondary float-end" onclick="clearSelection()">
+                <i class="bi bi-x-circle"></i> Clear Selection
+            </button>
+        </div>
+    </div>
+
     <!-- Summary Cards -->
-    <div class="row mb-4">
+    <div class="row mb-4" id="summaryCards">
         <div class="col-md-4">
             <div class="card text-white bg-primary">
                 <div class="card-body">
                     <h6 class="card-title">Total Centres</h6>
-                    <h3>@Model.StorageData.Select(s => s.SurveyId).Distinct().Count()</h3>
+                    <h3 id="totalCentres">@Model.StorageData.Select(s => s.SurveyId).Distinct().Count()</h3>
                 </div>
             </div>
         </div>
@@ -23,7 +46,7 @@
             <div class="card text-white bg-success">
                 <div class="card-body">
                     <h6 class="card-title">Total Capacity</h6>
-                    <h3>@Model.StorageData.Sum(s => s.ActualCapacity).ToString("N0") MT</h3>
+                    <h3 id="totalCapacity">@Model.StorageData.Sum(s => s.ActualCapacity).ToString("N0") MT</h3>
                 </div>
             </div>
         </div>
@@ -31,7 +54,7 @@
             <div class="card text-white bg-warning">
                 <div class="card-body">
                     <h6 class="card-title">Total Area</h6>
-                    <h3>@Model.StorageData.Sum(s => s.TotalArea).ToString("N0") sq.mt</h3>
+                    <h3 id="totalArea">@Model.StorageData.Sum(s => s.TotalArea).ToString("N0") sq.mt</h3>
                 </div>
             </div>
         </div>
@@ -41,13 +64,13 @@
     <div class="card mb-4 shadow-sm">
         <div class="card-header bg-light">
             <h5 class="mb-0">
-                <i class="bi bi-funnel"></i> Filters
+                <i class="bi bi-funnel"></i> Additional Filters
             </h5>
         </div>
         <div class="card-body">
             <form method="get" id="filterForm">
                 <div class="row g-3">
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <label for="state" class="form-label">
                             <i class="bi bi-geo-alt"></i> State
                         </label>
@@ -59,9 +82,9 @@
                             }
                         </select>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <label for="city" class="form-label">
-                            <i class="bi bi-building"></i> City
+                            <i class="bi bi-building"></i> City/District
                         </label>
                         <select name="City" id="city" class="form-select" asp-for="City">
                             <option value="">All Cities</option>
@@ -71,15 +94,15 @@
                             }
                         </select>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <label for="startDate" class="form-label">
-                            <i class="bi bi-calendar"></i> Survey From Date
+                            <i class="bi bi-calendar"></i> QC From Date
                         </label>
                         <input type="date" name="StartDate" id="startDate" class="form-control" asp-for="StartDate" />
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <label for="endDate" class="form-label">
-                            <i class="bi bi-calendar"></i> Survey To Date
+                            <i class="bi bi-calendar"></i> QC To Date
                         </label>
                         <input type="date" name="EndDate" id="endDate" class="form-control" asp-for="EndDate" />
                     </div>
@@ -113,11 +136,6 @@
                 <i class="bi bi-bar-chart-fill"></i> Charts & Diagrams
             </button>
         </li>
-        <li class="nav-item" role="presentation">
-            <button class="nav-link" id="graphs-tab" data-bs-toggle="tab" data-bs-target="#graphs" type="button" role="tab">
-                <i class="bi bi-geo-alt-fill"></i> Map & Graphs
-            </button>
-        </li>
     </ul>
 
     <div class="tab-content border border-top-0 p-3" id="dashboardTabContent">
@@ -132,53 +150,82 @@
                         <table class="table table-striped table-hover table-bordered" id="dataTable">
                             <thead class="table-dark">
                                 <tr>
-                                    <th>ID</th>
+                                    <th>Sr. No.</th>
+                                    <th>Survey ID</th>
                                     <th>State</th>
+                                    @* <th>District</th> *@
                                     <th>City</th>
-                                    <th>Location</th>
-                                    <th>Capacity (MT)</th>
-                                    <th>Area (sq.mt)</th>
-                                    <th>Survey Date</th>
+                                    @* <th>Location/Address</th> *@
+                                @*     <th>Facility Type</th>
+                                    <th>Owner Name</th>
+                                    <th>Contact Number</th> *@
+                                    <th>Actual Capacity (MT)</th>
+                                    <th>Total Area (sq.mt)</th>
+                                    @* <th>No. of Chambers</th> *@
+                                    @* <th>Year Established</th> *@
+                                    <th>QC Status</th>
+                                    <th>Latitude</th>
+                                    <th>Longitude</th>
+                                    <th>QC Date</th>
                                 </tr>
                             </thead>
-                            <tbody>
+                            <tbody id="tableBody">
                                 @if (Model.StorageData.Any())
                                 {
+                                    int srNo = 1;
                                     @foreach (var item in Model.StorageData)
                                     {
-                                        <tr>
-                                            <td>@item.Id</td>
+                                        <tr data-state="@item.State" data-city="@item.City">
+                                            <td>@srNo</td>
+                                            <td>@item.SurveyId</td>
                                             <td>@item.State</td>
+                                            @* <td>@item.District</td> *@
                                             <td>@item.City</td>
-                                            <td>@item.Location</td>
+                                            @* <td>@item.Location</td> *@
+                                           @*  <td>@item.FacilityType</td>
+                                            <td>@item.OwnerName</td>
+                                            <td>@item.ContactNumber</td> *@
                                             <td class="text-end">@item.ActualCapacity.ToString("N2")</td>
                                             <td class="text-end">@item.TotalArea.ToString("N2")</td>
-                                            <td>@item.SurveyDate.ToString("yyyy-MM-dd")</td>
+                                            @* <td class="text-end">@item.NumberOfChambers</td> *@
+                                            @* <td>@item.YearEstablished</td> *@
+                                            <td>
+                                                <span class="badge bg-@(item.QCStatus.ToLower().Contains("approved") || item.QCStatus.ToLower().Contains("complete") ? "success" : item.QCStatus.ToLower().Contains("pending") ? "warning" : item.QCStatus.ToLower().Contains("rejected") ? "danger" : "secondary")">
+                                                    @item.QCStatus
+                                                </span>
+                                            </td>
+                                            <td class="text-end">@item.Latitude.ToString("N6")</td>
+                                            <td class="text-end">@item.Longitude.ToString("N6")</td>
+                                            <td>@item.QCDate.ToString("yyyy-MM-dd")</td>
                                         </tr>
+                                        srNo++;
                                     }
                                 }
                                 else
                                 {
                                     <tr>
-                                        <td colspan="7" class="text-center text-muted py-4">
+                                        <td colspan="17" class="text-center text-muted py-4">
                                             <i class="bi bi-inbox" style="font-size: 2rem;"></i>
-                                            <p class="mt-2">No data available. Please check your database connection and table structure.</p>
+                                            <p class="mt-2">No data available.</p>
                                         </td>
                                     </tr>
                                 }
                             </tbody>
-                            @if (Model.StorageData.Any())
-                            {
-                                <tfoot class="table-secondary">
+                            <tfoot class="table-secondary" id="tableFooter">
+                                @if (Model.StorageData.Any())
+                                {
+                                    var totalCapacity = Model.StorageData.Sum(s => s.ActualCapacity);
+                                    var totalChambers = Model.StorageData.Sum(s => s.NumberOfChambers);
                                     <tr>
                                         <th class="text-end">@Model.StorageData.Select(s => s.SurveyId).Distinct().Count()</th>
-                                        <th colspan="3" class="text-end">Totals:</th>
-                                        <th class="text-end">@Model.StorageData.Sum(s => s.ActualCapacity).ToString("N2")</th>
+                                        <th colspan="5" class="text-end">Totals:</th>
+                                        <th class="text-end">@totalCapacity.ToString("N2")</th>
                                         <th class="text-end">@Model.StorageData.Sum(s => s.TotalArea).ToString("N2")</th>
-                                        <th></th>
+                                     @*    <th class="text-end">@totalChambers</th> *@
+                                        <th colspan="5"></th>
                                     </tr>
-                                </tfoot>
-                            }
+                                }
+                            </tfoot>
                         </table>
                     </div>
                 </div>
@@ -227,22 +274,10 @@
                             <div class="col-lg-6 mb-4">
                                 <div class="card">
                                     <div class="card-header bg-success text-white">
-                                        <h6 class="mb-0">State-wise Distribution</h6>
+                                        <h6 class="mb-0">Distribution by State</h6>
                                     </div>
                                     <div class="card-body">
                                         <canvas id="pieChart"></canvas>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-12">
-                                <div class="card">
-                                    <div class="card-header bg-secondary text-white">
-                                        <h6 class="mb-0">State-wise Capacity vs Area Analysis</h6>
-                                    </div>
-                                    <div class="card-body">
-                                        <canvas id="regionalChart"></canvas>
                                     </div>
                                 </div>
                             </div>
@@ -258,47 +293,6 @@
                 </div>
             </div>
         </div>
-
-        <!-- Map View -->
-        <div class="tab-pane fade" id="graphs" role="tabpanel">
-            <div class="card shadow-sm">
-                <div class="card-header bg-light">
-                    <h5 class="mb-0">Storage Locations Map & Geographic Analysis</h5>
-                </div>
-                <div class="card-body">
-                    @if (Model.StorageData.Any())
-                    {
-                        <div id="map" style="height: 600px; width: 100%;" class="mb-3 border rounded"></div>
-
-                        <div class="row mt-3">
-                            <div class="col-md-6">
-                                <h6>Legend</h6>
-                                <div class="d-flex gap-3 flex-wrap">
-                                    <span><i class="bi bi-circle-fill text-success"></i> Active</span>
-                                    <span><i class="bi bi-circle-fill text-warning"></i> Maintenance</span>
-                                    <span><i class="bi bi-circle-fill text-secondary"></i> Inactive</span>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <h6>Map Statistics</h6>
-                                <p class="mb-0">
-                                    <strong>Total Markers:</strong> @Model.StorageData.Count |
-                                    <strong>States:</strong> @Model.States.Count |
-                                    <strong>Active:</strong> @Model.StorageData.Count(s => s.Status == "Active")
-                                </p>
-                            </div>
-                        </div>
-                    }
-                    else
-                    {
-                        <div class="text-center text-muted py-5">
-                            <i class="bi bi-map" style="font-size: 3rem;"></i>
-                            <p class="mt-3">No location data available to display on map</p>
-                        </div>
-                    }
-                </div>
-            </div>
-        </div>
     </div>
 </div>
 
@@ -307,48 +301,396 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
     <script>
         var storageData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.StorageData));
+        var allData = storageData; // Keep original data
+        var filteredData = storageData; // Current filtered data
+        var map;
+        var stateLayer;
+        var markersLayer;
+        var selectedState = null;
+        var selectedDistrict = null;
         var chartsInitialized = false;
-        var mapInitialized = false;
+
+        // Initialize map on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeIndiaMap();
+            updateSummaryCards();
+        });
 
         // Initialize charts when Charts tab is shown
         document.getElementById('charts-tab').addEventListener('shown.bs.tab', function () {
-            if (!chartsInitialized && storageData.length > 0) {
+            if (!chartsInitialized) {
                 initializeCharts();
                 chartsInitialized = true;
+            } else {
+                updateCharts();
             }
         });
 
-        // Initialize map when Map tab is shown
-        document.getElementById('graphs-tab').addEventListener('shown.bs.tab', function () {
-            if (!mapInitialized && storageData.length > 0) {
-                initializeMap();
-                mapInitialized = true;
+        function initializeIndiaMap() {
+            if (map) {
+                map.remove();
             }
-        });
 
-        function initializeCharts() {
-            // Group data by State
+            // Initialize map centered on India
+            map = L.map('indiaMap').setView([20.5937, 78.9629], 5);
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors',
+                maxZoom: 18
+            }).addTo(map);
+
+            // Create layers
+            stateLayer = L.featureGroup().addTo(map);
+            markersLayer = L.featureGroup().addTo(map);
+
+            // Load India state boundaries
+            loadIndiaStates();
+
+            // Add storage location markers
+            addStorageMarkers();
+        }
+
+        function loadIndiaStates() {
+            // Using a simplified approach with state polygons
             var stateData = {};
+
             storageData.forEach(item => {
                 if (!stateData[item.State]) {
-                    stateData[item.State] = { capacity: 0, area: 0, count: 0 };
+                    stateData[item.State] = {
+                        centres: 0,
+                        capacity: 0,
+                        area: 0,
+                        locations: []
+                    };
                 }
+                stateData[item.State].centres++;
                 stateData[item.State].capacity += item.ActualCapacity;
                 stateData[item.State].area += item.TotalArea;
-                stateData[item.State].count += 1;
+                stateData[item.State].locations.push([item.Latitude, item.Longitude]);
             });
 
-            // Capacity by State Chart
-            new Chart(document.getElementById('capacityChart'), {
+            // Create circles representing states (simplified)
+            Object.keys(stateData).forEach(stateName => {
+                var locations = stateData[stateName].locations.filter(loc => loc[0] !== 0 && loc[1] !== 0);
+                if (locations.length > 0) {
+                    var avgLat = locations.reduce((sum, loc) => sum + loc[0], 0) / locations.length;
+                    var avgLon = locations.reduce((sum, loc) => sum + loc[1], 0) / locations.length;
+
+                    var stateCircle = L.circle([avgLat, avgLon], {
+                        radius: 50000,
+                        fillColor: '#3388ff',
+                        color: '#0066cc',
+                        weight: 2,
+                        opacity: 0.8,
+                        fillOpacity: 0.3
+                    }).addTo(stateLayer);
+
+                    stateCircle.bindPopup(`
+                        <div style="min-width: 200px;">
+                            <h6 class="mb-2"><strong>${stateName}</strong></h6>
+                            <table class="table table-sm table-borderless mb-0">
+                                <tr><td><strong>Centres:</strong></td><td>${stateData[stateName].centres}</td></tr>
+                                <tr><td><strong>Total Capacity:</strong></td><td>${stateData[stateName].capacity.toFixed(2)} MT</td></tr>
+                                <tr><td><strong>Total Area:</strong></td><td>${stateData[stateName].area.toFixed(2)} sq.mt</td></tr>
+                            </table>
+                            <button class="btn btn-sm btn-primary mt-2" onclick="selectState('${stateName}')">
+                                View Details
+                            </button>
+                        </div>
+                    `);
+
+                    stateCircle.on('click', function() {
+                        selectState(stateName);
+                    });
+                }
+            });
+        }
+
+        function addStorageMarkers() {
+            markersLayer.clearLayers();
+
+            filteredData.forEach(item => {
+                if (item.Latitude !== 0 && item.Longitude !== 0) {
+                    var marker = L.circleMarker([item.Latitude, item.Longitude], {
+                        radius: 8,
+                        fillColor: '#198754',
+                        color: '#fff',
+                        weight: 2,
+                        opacity: 1,
+                        fillOpacity: 0.8
+                    }).addTo(markersLayer);
+
+                    marker.bindPopup(`
+                        <div style="min-width: 200px;">
+                            <h6 class="mb-2"><strong>${item.Location}</strong></h6>
+                            <table class="table table-sm table-borderless mb-0">
+                                <tr><td><strong>State:</strong></td><td>${item.State}</td></tr>
+                                <tr><td><strong>District:</strong></td><td>${item.District || 'N/A'}</td></tr>
+                                <tr><td><strong>City:</strong></td><td>${item.City}</td></tr>
+                                <tr><td><strong>Facility Type:</strong></td><td>${item.FacilityType || 'N/A'}</td></tr>
+                                <tr><td><strong>Capacity:</strong></td><td>${item.ActualCapacity.toFixed(2)} MT</td></tr>
+                                <tr><td><strong>Area:</strong></td><td>${item.TotalArea.toFixed(2)} sq.mt</td></tr>
+                                <tr><td><strong>Chambers:</strong></td><td>${item.NumberOfChambers || 'N/A'}</td></tr>
+                            </table>
+                        </div>
+                    `);
+                }
+            });
+        }
+
+        function selectState(stateName) {
+            selectedState = stateName;
+            selectedDistrict = null;
+
+            // Filter data by state
+            filteredData = allData.filter(item => item.State === stateName);
+
+            // Update UI
+            document.getElementById('selectedRegion').textContent = stateName;
+            document.getElementById('districtInfo').style.display = 'block';
+
+            // Update summary cards
+            updateSummaryCards();
+
+            // Update table
+            updateTable();
+
+            // Update charts if visible
+            if (chartsInitialized) {
+                updateCharts();
+            }
+
+            // Update markers
+            addStorageMarkers();
+
+            // Zoom to state
+            var stateLocations = filteredData
+                .filter(item => item.Latitude !== 0 && item.Longitude !== 0)
+                .map(item => [item.Latitude, item.Longitude]);
+
+            if (stateLocations.length > 0) {
+                var bounds = L.latLngBounds(stateLocations);
+                map.fitBounds(bounds.pad(0.2));
+            }
+
+            // Show districts as cities in this simplified version
+            showDistrictOptions();
+        }
+
+        function showDistrictOptions() {
+            // Get unique cities/districts in selected state
+            var districts = [...new Set(filteredData.map(item => item.City))];
+
+            // Create district markers
+            districts.forEach(district => {
+                var districtData = filteredData.filter(item => item.City === district);
+                var locations = districtData
+                    .filter(item => item.Latitude !== 0 && item.Longitude !== 0)
+                    .map(item => [item.Latitude, item.Longitude]);
+
+                if (locations.length > 0) {
+                    var avgLat = locations.reduce((sum, loc) => sum + loc[0], 0) / locations.length;
+                    var avgLon = locations.reduce((sum, loc) => sum + loc[1], 0) / locations.length;
+
+                    var districtCircle = L.circle([avgLat, avgLon], {
+                        radius: 20000,
+                        fillColor: '#ff7800',
+                        color: '#ff5500',
+                        weight: 2,
+                        opacity: 0.8,
+                        fillOpacity: 0.4
+                    }).addTo(stateLayer);
+
+                    var centres = districtData.length;
+                    var capacity = districtData.reduce((sum, item) => sum + item.ActualCapacity, 0);
+                    var area = districtData.reduce((sum, item) => sum + item.TotalArea, 0);
+
+                    districtCircle.bindPopup(`
+                        <div style="min-width: 200px;">
+                            <h6 class="mb-2"><strong>${district}</strong></h6>
+                            <table class="table table-sm table-borderless mb-0">
+                                <tr><td><strong>Centres:</strong></td><td>${centres}</td></tr>
+                                <tr><td><strong>Total Capacity:</strong></td><td>${capacity.toFixed(2)} MT</td></tr>
+                                <tr><td><strong>Total Area:</strong></td><td>${area.toFixed(2)} sq.mt</td></tr>
+                            </table>
+                            <button class="btn btn-sm btn-primary mt-2" onclick="selectDistrict('${district}')">
+                                View Details
+                            </button>
+                        </div>
+                    `);
+
+                    districtCircle.on('click', function() {
+                        selectDistrict(district);
+                    });
+                }
+            });
+        }
+
+        function selectDistrict(districtName) {
+            selectedDistrict = districtName;
+
+            // Filter data by district
+            filteredData = allData.filter(item => item.State === selectedState && item.City === districtName);
+
+            // Update UI
+            document.getElementById('selectedRegion').textContent = selectedState + ' > ' + districtName;
+
+            // Update summary cards
+            updateSummaryCards();
+
+            // Update table
+            updateTable();
+
+            // Update charts if visible
+            if (chartsInitialized) {
+                updateCharts();
+            }
+
+            // Update markers
+            addStorageMarkers();
+
+            // Zoom to district
+            var districtLocations = filteredData
+                .filter(item => item.Latitude !== 0 && item.Longitude !== 0)
+                .map(item => [item.Latitude, item.Longitude]);
+
+            if (districtLocations.length > 0) {
+                var bounds = L.latLngBounds(districtLocations);
+                map.fitBounds(bounds.pad(0.3));
+            }
+        }
+
+        function clearSelection() {
+            selectedState = null;
+            selectedDistrict = null;
+            filteredData = allData;
+
+            document.getElementById('districtInfo').style.display = 'none';
+            document.getElementById('selectedRegion').textContent = 'All India';
+
+            updateSummaryCards();
+            updateTable();
+
+            if (chartsInitialized) {
+                updateCharts();
+            }
+
+            stateLayer.clearLayers();
+            loadIndiaStates();
+            addStorageMarkers();
+            map.setView([20.5937, 78.9629], 5);
+        }
+
+        function updateSummaryCards() {
+            var centres = new Set(filteredData.map(item => item.SurveyId)).size;
+            var capacity = filteredData.reduce((sum, item) => sum + item.ActualCapacity, 0);
+            var area = filteredData.reduce((sum, item) => sum + item.TotalArea, 0);
+
+            document.getElementById('totalCentres').textContent = centres;
+            document.getElementById('totalCapacity').textContent = capacity.toLocaleString('en-IN', {maximumFractionDigits: 0}) + ' MT';
+            document.getElementById('totalArea').textContent = area.toLocaleString('en-IN', {maximumFractionDigits: 0}) + ' sq.mt';
+        }
+
+        function updateTable() {
+            var tbody = document.getElementById('tableBody');
+            tbody.innerHTML = '';
+
+            if (filteredData.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="17" class="text-center text-muted py-4">No data available for selected region</td></tr>';
+            } else {
+                filteredData.forEach((item, index) => {
+                    var qcStatusClass = 'secondary';
+                    var qcStatus = (item.QCStatus || '').toLowerCase();
+                    if (qcStatus.includes('approved') || qcStatus.includes('complete')) {
+                        qcStatusClass = 'success';
+                    } else if (qcStatus.includes('pending')) {
+                        qcStatusClass = 'warning';
+                    } else if (qcStatus.includes('rejected')) {
+                        qcStatusClass = 'danger';
+                    }
+
+                    var row = `<tr>
+                        <td>${index + 1}</td>
+                        <td>${item.SurveyId}</td>
+                        <td>${item.State}</td>
+                        <td>${item.District || ''}</td>
+                        <td>${item.City}</td>
+                        <td>${item.Location}</td>
+                        <td>${item.FacilityType || ''}</td>
+                        <td>${item.OwnerName || ''}</td>
+                        <td>${item.ContactNumber || ''}</td>
+                        <td class="text-end">${item.ActualCapacity.toFixed(2)}</td>
+                        <td class="text-end">${item.TotalArea.toFixed(2)}</td>
+                        <td class="text-end">${item.NumberOfChambers || 0}</td>
+                        <td>${item.YearEstablished || ''}</td>
+                        <td><span class="badge bg-${qcStatusClass}">${item.QCStatus || 'N/A'}</span></td>
+                        <td class="text-end">${item.Latitude.toFixed(6)}</td>
+                        <td class="text-end">${item.Longitude.toFixed(6)}</td>
+                        <td>${new Date(item.QCDate).toISOString().split('T')[0]}</td>
+                    </tr>`;
+                    tbody.innerHTML += row;
+                });
+            }
+
+            // Update footer
+            var centres = new Set(filteredData.map(item => item.SurveyId)).size;
+            var capacity = filteredData.reduce((sum, item) => sum + item.ActualCapacity, 0);
+            var area = filteredData.reduce((sum, item) => sum + item.TotalArea, 0);
+            var chambers = filteredData.reduce((sum, item) => sum + (item.NumberOfChambers || 0), 0);
+
+            var footer = `<tr>
+                <th class="text-end">${centres}</th>
+                <th colspan="8" class="text-end">Totals:</th>
+                <th class="text-end">${capacity.toFixed(2)}</th>
+                <th class="text-end">${area.toFixed(2)}</th>
+                <th class="text-end">${chambers}</th>
+                <th colspan="5"></th>
+            </tr>`;
+
+            document.getElementById('tableFooter').innerHTML = footer;
+        }
+
+        function initializeCharts() {
+            createCapacityChart();
+            createAreaChart();
+            createLocationChart();
+            createPieChart();
+        }
+
+        function updateCharts() {
+            // Destroy existing charts
+            if (window.capacityChartInstance) window.capacityChartInstance.destroy();
+            if (window.areaChartInstance) window.areaChartInstance.destroy();
+            if (window.locationChartInstance) window.locationChartInstance.destroy();
+            if (window.pieChartInstance) window.pieChartInstance.destroy();
+
+            // Recreate charts with new data
+            createCapacityChart();
+            createAreaChart();
+            createLocationChart();
+            createPieChart();
+        }
+
+        function createCapacityChart() {
+            var stateData = {};
+            filteredData.forEach(item => {
+                if (!stateData[item.State]) {
+                    stateData[item.State] = 0;
+                }
+                stateData[item.State] += item.ActualCapacity;
+            });
+
+            window.capacityChartInstance = new Chart(document.getElementById('capacityChart'), {
                 type: 'bar',
                 data: {
                     labels: Object.keys(stateData),
                     datasets: [{
                         label: 'Total Capacity (MT)',
-                        data: Object.values(stateData).map(d => d.capacity),
+                        data: Object.values(stateData),
                         backgroundColor: 'rgba(54, 162, 235, 0.6)',
                         borderColor: 'rgba(54, 162, 235, 1)',
                         borderWidth: 2
@@ -362,21 +704,27 @@
                             beginAtZero: true,
                             title: { display: true, text: 'Capacity (MT)' }
                         }
-                    },
-                    plugins: {
-                        legend: { display: true, position: 'top' }
                     }
                 }
             });
+        }
 
-            // Area by State Chart
-            new Chart(document.getElementById('areaChart'), {
+        function createAreaChart() {
+            var stateData = {};
+            filteredData.forEach(item => {
+                if (!stateData[item.State]) {
+                    stateData[item.State] = 0;
+                }
+                stateData[item.State] += item.TotalArea;
+            });
+
+            window.areaChartInstance = new Chart(document.getElementById('areaChart'), {
                 type: 'bar',
                 data: {
                     labels: Object.keys(stateData),
                     datasets: [{
                         label: 'Total Area (sq.mt)',
-                        data: Object.values(stateData).map(d => d.area),
+                        data: Object.values(stateData),
                         backgroundColor: 'rgba(255, 193, 7, 0.6)',
                         borderColor: 'rgba(255, 193, 7, 1)',
                         borderWidth: 2
@@ -390,24 +738,27 @@
                             beginAtZero: true,
                             title: { display: true, text: 'Area (sq.mt)' }
                         }
-                    },
-                    plugins: {
-                        legend: { display: true, position: 'top' }
                     }
                 }
             });
+        }
 
-            // Capacity by Location Chart
-            var locations = storageData.map(item => item.City.length > 15 ? item.City.substring(0, 15) + '...' : item.City);
-            var capacities = storageData.map(item => item.ActualCapacity);
+        function createLocationChart() {
+            var cityData = {};
+            filteredData.forEach(item => {
+                if (!cityData[item.City]) {
+                    cityData[item.City] = 0;
+                }
+                cityData[item.City] += item.ActualCapacity;
+            });
 
-            new Chart(document.getElementById('locationChart'), {
+            window.locationChartInstance = new Chart(document.getElementById('locationChart'), {
                 type: 'bar',
                 data: {
-                    labels: locations,
+                    labels: Object.keys(cityData),
                     datasets: [{
                         label: 'Capacity (MT)',
-                        data: capacities,
+                        data: Object.values(cityData),
                         backgroundColor: 'rgba(23, 162, 184, 0.6)',
                         borderColor: 'rgba(23, 162, 184, 1)',
                         borderWidth: 2
@@ -421,21 +772,27 @@
                             beginAtZero: true,
                             title: { display: true, text: 'Capacity (MT)' }
                         }
-                    },
-                    plugins: {
-                        legend: { display: false }
                     }
                 }
             });
+        }
 
-            // State Distribution Pie Chart
-            new Chart(document.getElementById('pieChart'), {
+        function createPieChart() {
+            var stateData = {};
+            filteredData.forEach(item => {
+                if (!stateData[item.State]) {
+                    stateData[item.State] = 0;
+                }
+                stateData[item.State]++;
+            });
+
+            window.pieChartInstance = new Chart(document.getElementById('pieChart'), {
                 type: 'doughnut',
                 data: {
                     labels: Object.keys(stateData),
                     datasets: [{
                         label: 'Number of Facilities',
-                        data: Object.values(stateData).map(d => d.count),
+                        data: Object.values(stateData),
                         backgroundColor: [
                             'rgba(25, 135, 84, 0.7)',
                             'rgba(255, 193, 7, 0.7)',
@@ -457,119 +814,51 @@
                     }
                 }
             });
-
-            // State-wise Analysis Radar Chart
-            new Chart(document.getElementById('regionalChart'), {
-                type: 'radar',
-                data: {
-                    labels: Object.keys(stateData),
-                    datasets: [{
-                        label: 'Capacity (MT)',
-                        data: Object.values(stateData).map(d => d.capacity),
-                        backgroundColor: 'rgba(54, 162, 235, 0.2)',
-                        borderColor: 'rgba(54, 162, 235, 1)',
-                        borderWidth: 2,
-                        pointRadius: 4
-                    }, {
-                        label: 'Area (sq.mt)',
-                        data: Object.values(stateData).map(d => d.area / 100), // Scaled down for better visualization
-                        backgroundColor: 'rgba(255, 193, 7, 0.2)',
-                        borderColor: 'rgba(255, 193, 7, 1)',
-                        borderWidth: 2,
-                        pointRadius: 4
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: true,
-                    scales: {
-                        r: {
-                            beginAtZero: true
-                        }
-                    },
-                    plugins: {
-                        legend: { display: true, position: 'top' }
-                    }
-                }
-            });
-        }
-
-        var map;
-        function initializeMap() {
-            if (map) {
-                map.remove();
-            }
-
-            // Calculate center point
-            var validLocations = storageData.filter(item => item.Latitude !== 0 && item.Longitude !== 0);
-
-            var avgLat = validLocations.length > 0
-                ? validLocations.reduce((sum, item) => sum + item.Latitude, 0) / validLocations.length
-                : 20.5937;
-            var avgLon = validLocations.length > 0
-                ? validLocations.reduce((sum, item) => sum + item.Longitude, 0) / validLocations.length
-                : 78.9629;
-
-            map = L.map('map').setView([avgLat, avgLon], validLocations.length > 0 ? 5 : 5);
-
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '© OpenStreetMap contributors',
-                maxZoom: 18
-            }).addTo(map);
-
-            // Add markers for each location
-            storageData.forEach(item => {
-                if (item.Latitude !== 0 && item.Longitude !== 0) {
-                    var color = item.Status === 'Active' ? '#198754' :
-                               item.Status === 'Maintenance' ? '#ffc107' : '#6c757d';
-
-                    var marker = L.circleMarker([item.Latitude, item.Longitude], {
-                        radius: 10,
-                        fillColor: color,
-                        color: '#fff',
-                        weight: 3,
-                        opacity: 1,
-                        fillOpacity: 0.8
-                    }).addTo(map);
-
-                    var utilization = item.Capacity > 0 ? (item.Used / item.Capacity * 100).toFixed(1) : 0;
-
-                    marker.bindPopup(`
-                        <div style="min-width: 200px;">
-                            <h6 class="mb-2"><strong>${item.Location}</strong></h6>
-                            <table class="table table-sm table-borderless mb-0">
-                                <tr><td><strong>State:</strong></td><td>${item.State}</td></tr>
-                                <tr><td><strong>City:</strong></td><td>${item.City}</td></tr>
-                                <tr><td><strong>Status:</strong></td><td><span class="badge bg-${item.Status === 'Active' ? 'success' : item.Status === 'Maintenance' ? 'warning' : 'secondary'}">${item.Status}</span></td></tr>
-                                <tr><td><strong>Capacity:</strong></td><td>${item.ActualCapacity.toFixed(2)} MT</td></tr>
-                                <tr><td><strong>Area:</strong></td><td>${item.TotalArea.toFixed(2)} sq.mt</td></tr>
-                                <tr><td><strong>Used:</strong></td><td>${item.Used.toFixed(2)} MT</td></tr>
-                                <tr><td><strong>Available:</strong></td><td>${item.Available.toFixed(2)} MT</td></tr>
-                                <tr><td><strong>Utilization:</strong></td><td><span class="badge bg-${utilization > 80 ? 'danger' : utilization > 60 ? 'warning' : 'success'}">${utilization}%</span></td></tr>
-                                <tr><td><strong>Temperature:</strong></td><td>${item.Temperature.toFixed(1)}°C</td></tr>
-                            </table>
-                        </div>
-                    `);
-                }
-            });
-
-            // Fit bounds to show all markers
-            if (validLocations.length > 0) {
-                var group = L.featureGroup(
-                    validLocations.map(item => L.marker([item.Latitude, item.Longitude]))
-                );
-                map.fitBounds(group.getBounds().pad(0.1));
-            }
         }
 
         function exportToExcel() {
-            var table = document.getElementById('dataTable');
-            var html = table.outerHTML;
-            var url = 'data:application/vnd.ms-excel,' + encodeURIComponent(html);
-            var link = document.createElement('a');
-            link.href = url;
-            link.download = 'ColdStorage_Summary_' + new Date().toISOString().slice(0,10) + '.xls';
-            link.click();
+            // Prepare data with all fields
+            var exportData = filteredData.map((item, index) => {
+                return {
+                    'Sr. No.': index + 1,
+                    'Survey ID': item.SurveyId,
+                    'State': item.State,
+                    // 'District': item.District || '',
+                    'City': item.City,
+                    // 'Location/Address': item.Location,
+                    // 'Facility Type': item.FacilityType || '',
+                    // 'Owner Name': item.OwnerName || '',
+                    // 'Contact Number': item.ContactNumber || '',
+                     'Actual Capacity (MT)': item.ActualCapacity,
+                    'Total Area (sq.mt)': item.TotalArea,
+                    // 'No. of Chambers': item.NumberOfChambers || 0,
+                    // 'Year Established': item.YearEstablished || '',
+                    'QC Status': item.QCStatus || '',
+                    'Latitude': item.Latitude,
+                    'Longitude': item.Longitude,
+                    'QC Date': new Date(item.QCDate).toISOString().split('T')[0]
+                };
+            });
+
+            // Create worksheet
+            var ws = XLSX.utils.json_to_sheet(exportData);
+
+            // Set column widths
+            ws['!cols'] = [
+                {wch: 8}, {wch: 15}, {wch: 20}, {wch: 20}, {wch: 20},
+                {wch: 30}, {wch: 20}, {wch: 25}, {wch: 15}, {wch: 18},
+                {wch: 18}, {wch: 15}, {wch: 15}, {wch: 15}, {wch: 12}, {wch: 12}, {wch: 12}
+            ];
+
+            // Create workbook
+            var wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'Cold Storage Data');
+
+            // Generate filename with current date
+            var filename = 'ColdStorage_Export_' + new Date().toISOString().slice(0,10) + '.xlsx';
+
+            // Save file
+            XLSX.writeFile(wb, filename);
         }
     </script>
 }
@@ -596,7 +885,7 @@
     }
 
     #dataTable {
-        font-size: 0.9rem;
+        font-size: 0.85rem;
     }
 
     .card {
@@ -611,19 +900,19 @@
         box-shadow: 0 .125rem .25rem rgba(0,0,0,.075) !important;
     }
 
-    .bg-primary {
-        background-color: #0d6efd !important;
+    .leaflet-popup-content {
+        margin: 8px;
     }
 
-    .bg-success {
-        background-color: #198754 !important;
+        .leaflet-popup-content table {
+            margin-bottom: 0 !important;
+        }
+
+    #indiaMap {
+        border-radius: 0 0 8px 8px;
     }
 
-    .bg-warning {
-        background-color: #ffc107 !important;
-    }
-
-    .bg-info {
-        background-color: #0dcaf0 !important;
+    .table-responsive {
+        overflow-x: auto;
     }
 </style>
